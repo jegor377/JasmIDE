@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<SyntaxColorElements>
+    <SyntaxColorElement name="commands" color="#F44336">
+        <SyntaxColorElementWord>aaa</SyntaxColorElementWord>
+        <SyntaxColorElementWord>aad</SyntaxColorElementWord>
+        <SyntaxColorElementWord>aam</SyntaxColorElementWord>
+        <SyntaxColorElementWord>aas</SyntaxColorElementWord>
+        <SyntaxColorElementWord>adc</SyntaxColorElementWord>
+        <SyntaxColorElementWord>add</SyntaxColorElementWord>
+    </SyntaxColorElement>
+    <SyntaxColorElement name="operators" color="#009688">
+        <SyntaxColorElementWord>,</SyntaxColorElementWord>
+        <SyntaxColorElementWord>[</SyntaxColorElementWord>
+        <SyntaxColorElementWord>]</SyntaxColorElementWord>
+        <SyntaxColorElementWord>"</SyntaxColorElementWord>
+        <SyntaxColorElementWord>'</SyntaxColorElementWord>
+        <SyntaxColorElementWord>+</SyntaxColorElementWord>
+        <SyntaxColorElementWord>-</SyntaxColorElementWord>
+        <SyntaxColorElementWord>*</SyntaxColorElementWord>
+        <SyntaxColorElementWord>/</SyntaxColorElementWord>
+    </SyntaxColorElement>
+    <SyntaxColorElement name="digits" color="#673AB7">
+        <SyntaxColorElementWord>0</SyntaxColorElementWord>
+        <SyntaxColorElementWord>1</SyntaxColorElementWord>
+        <SyntaxColorElementWord>2</SyntaxColorElementWord>
+        <SyntaxColorElementWord>3</SyntaxColorElementWord>
+        <SyntaxColorElementWord>4</SyntaxColorElementWord>
+        <SyntaxColorElementWord>5</SyntaxColorElementWord>
+        <SyntaxColorElementWord>6</SyntaxColorElementWord>
+        <SyntaxColorElementWord>7</SyntaxColorElementWord>
+        <SyntaxColorElementWord>8</SyntaxColorElementWord>
+        <SyntaxColorElementWord>9</SyntaxColorElementWord>
+    </SyntaxColorElement>
+    <SyntaxColorElement name="labels" color="#2196F3">
+        <SyntaxColorElementWord>:</SyntaxColorElementWord>
+    </SyntaxColorElement>
+    <SyntaxColorElement name="registers" color="#6200EA">
+        <SyntaxColorElementWord>ax</SyntaxColorElementWord>
+        <SyntaxColorElementWord>ah</SyntaxColorElementWord>
+        <SyntaxColorElementWord>al</SyntaxColorElementWord>
+        <SyntaxColorElementWord>dx</SyntaxColorElementWord>
+        <SyntaxColorElementWord>dh</SyntaxColorElementWord>
+        <SyntaxColorElementWord>dl</SyntaxColorElementWord>
+        <SyntaxColorElementWord>bx</SyntaxColorElementWord>
+        <SyntaxColorElementWord>bh</SyntaxColorElementWord>
+        <SyntaxColorElementWord>bl</SyntaxColorElementWord>
+        <SyntaxColorElementWord>sp</SyntaxColorElementWord>
+    </SyntaxColorElement>
+    <SyntaxColorElement name="sections" color="#F57C00">
+        <SyntaxColorElementWord>section</SyntaxColorElementWord>
+        <SyntaxColorElementWord>section .data</SyntaxColorElementWord>
+        <SyntaxColorElementWord>section .text</SyntaxColorElementWord>
+    </SyntaxColorElement>
+    <SyntaxColorElement name="comments" color="#7CB342">
+        <SyntaxColorElementWord>;</SyntaxColorElementWord>
+    </SyntaxColorElement>
+</SyntaxColorElements>

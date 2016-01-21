@@ -14,8 +14,6 @@ import android.view.ViewGroup;
 import android.widget.EditText;
 
 import com.example.mops.jasmide.R;
-
-import JasmIDE.AsmSyntaxHighlighter.AsmSyntaxHighlighter;
 import JasmIDE.data.DataSingleton;
 
 /**
@@ -46,7 +44,7 @@ public class MainFragment extends Fragment {
             @Override
             public void afterTextChanged(Editable s) {
                 if (!s.toString().isEmpty()) {
-                    s = DataSingleton.getInstance().getHighlighter().HighligtEditable(s);
+                    s = DataSingleton.getInstance().getHighlighter(getActivity()).HighligtEditable(s);
                 }
             }
         });

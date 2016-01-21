@@ -1,6 +1,10 @@
 package JasmIDE.data;
 
+import android.content.Context;
+import android.content.res.Resources;
 import android.widget.EditText;
+
+import com.example.mops.jasmide.R;
 
 import JasmIDE.AsmSyntaxHighlighter.AsmSyntaxHighlighter;
 import JasmIDE.SyntaxHighlighter.SyntaxHighlighter;
@@ -16,7 +20,6 @@ public final class DataSingleton {
     private static DataSingleton instance = null;
     protected DataSingleton() {
         // Exists only to defeat instantiation.
-        highlighter = new AsmSyntaxHighlighter();
     }
     public static DataSingleton getInstance() {
         if(instance == null) {
@@ -56,7 +59,8 @@ public final class DataSingleton {
         return editText.getSelectionStart();
     }
 
-    public AsmSyntaxHighlighter getHighlighter() {
-        return highlighter;
+    public AsmSyntaxHighlighter getHighlighter(Context context) {
+        if(highlighter==null) highlighter = new AsmSyntaxHighlighter(context.getResources().openRawResource(R.raw.syntax));
+        return (AsmSyntaxHighlighter)highlighter;
     }
 }
