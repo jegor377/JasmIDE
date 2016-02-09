@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, minimal-ui">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <meta name="theme-color" content="#2196f3">
+        <title>JASM IDE</title>
+        <link rel="stylesheet" href="css/framework7.material.min.css">
+        <link rel="stylesheet" href="css/framework7.material.colors.min.css">
+        <link rel="stylesheet" href="css/appfont.css">
+        <link rel="stylesheet" href="css/my-app.css">
+    </head>
+    <body>
+        <div class="statusbar-overlay"></div>
+        <div class="panel-overlay"></div>
+        <div class="panel panel-left panel-cover">
+            <div class="view navbar-fixed" data-page="panel-left">
+                <div class="pages">
+                    <div class="page" data-page="panel-left">
+                        <div class="navbar">
+                            <div class="navbar-inner">
+                                <div class="center">Menu</div>
+                            </div>
+                        </div>
+                        <div class="page-content">
+                            <div class="list-block">
+                                <ul id="menu-btns">
+                                    <li>
+                                        <a href="#" class="item-link list-button"><i class="icon-cubes"></i><span class="menu-option-text">Compile</span></a>
+                                    </li>
+                                    <li>
+                                        <a href="#" class="item-link list-button"><i class="icon-rocket"></i><span class="menu-option-text">Run</span></a>
+                                    </li>
+                                    <li class="btn-line">
+                                        <a href="#" class="item-link list-button"><i class="icon-bug"></i><span class="menu-option-text">Debug</span></a>
+                                    </li>
+                                    <li>
+                                        <a href="#" class="item-link list-button"><i class="icon-floppy"></i><span class="menu-option-text">Save</span></a>
+                                    </li>
+                                    <li class="btn-line">
+                                        <a href="#" class="item-link list-button"><i class="icon-file-code"></i><span class="menu-option-text">Open</span></a>
+                                    </li>
+                                    <li>
+                                        <a href="#" class="item-link list-button"><i class="icon-graduation-cap"></i><span class="menu-option-text">Reference</span></a>
+                                    </li>
+                                    <li>
+                                        <a href="settings.html" class="item-link list-button"><i class="icon-cog-alt"></i><span class="menu-option-text">Settings</span></a>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="views">
+            <div class="view view-main">
+                <div class="pages navbar-fixed">
+                    <div data-page="index" class="page">
+                        <div class="navbar">
+                            <div class="navbar-inner">
+                                <div class="center">JASM IDE</div>
+                                <div class="right">
+                                    <a href="#" class="link icon-only create-new-file"><i class="icon icon-plus"></i></a>
+                                    <a href="#" class="link icon-only open-panel"><i class="icon icon-bars"></i></a>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="program-wnd" class="page-content">
+                            <div id="code-wnd">
+                                <textarea id="code"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <script type="text/javascript" src="cordova.js"></script>
+        <script type="text/javascript" src="js/framework7.min.js"></script>
+        <script type="text/javascript" src="js/my-app.js"></script>
+    </body>
+</html>

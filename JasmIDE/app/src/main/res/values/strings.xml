@@ -1,9 +1,0 @@
-<resources>
-    <string name="app_name">JasmIDE</string>
-
-    <string name="navigation_drawer_open">Open navigation drawer</string>
-    <string name="navigation_drawer_close">Close navigation drawer</string>
-
-    <string name="action_open">Open</string>
-    <string name="action_save">Save</string>
-</resources>

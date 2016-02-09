@@ -1,0 +1,82 @@
+body
+{
+    margin: 0 !important;
+}
+
+#code
+{
+    display: flex;
+    padding: 0;
+    margin: 0;
+    width: 100%;
+    height: 100%;
+
+    font-family: Courier New, Courier, Lucida Sans Typewriter;
+    font-size: 22px;
+
+	resize: none;
+}
+
+#code-wnd
+{
+    width: 99.5%;
+    height: 99.5%;
+}
+
+.btn-line
+{
+    border-bottom: 1px solid;
+    border-color: rgba(0, 0, 0, 0.15);
+}
+
+#menu-btns > li > a {
+    font-size: 18px;
+}
+
+.menu-option-text {
+    font-size: 14px !important;
+}
+
+.icon-cubes {
+    margin-right: 9px;
+    color: #00BCD4;
+}
+
+.icon-rocket {
+    margin-right: 9px;
+    color: #1976D2;
+}
+
+.icon-bug {
+    margin-right: 9px;
+    color: #512DA8;
+}
+
+.icon-floppy {
+    margin-right: 9px;
+    color: #C62828;
+}
+
+.icon-file-code {
+    margin-right: 9px;
+    color: #00BFA5;
+}
+
+.icon-graduation-cap {
+    margin-right: 9px;
+    color: #0D47A1;
+}
+
+.icon-cog-alt {
+    margin-right: 9px;
+    color: #90A4AE;
+}
+
+@media (min-width: 768px)
+{
+    #code-wnd
+    {
+        margin-left: auto;
+        margin-right: auto;
+    }
+}
