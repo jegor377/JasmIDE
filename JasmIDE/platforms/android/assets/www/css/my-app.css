@@ -12,7 +12,7 @@ body
     height: 100%;
 
     font-family: Courier New, Courier, Lucida Sans Typewriter;
-    font-size: 22px;
+    font-size: 20px;
 
 	resize: none;
 }
@@ -23,10 +23,53 @@ body
     height: 99.5%;
 }
 
-hr
+.btn-line
 {
-    opacity: 0.2;
-    margin: 0;
+    border-bottom: 1px solid;
+    border-color: rgba(0, 0, 0, 0.15);
+}
+
+#menu-btns > li > a {
+    font-size: 18px;
+}
+
+.menu-option-text {
+    font-size: 14px !important;
+}
+
+.icon-cubes {
+    margin-right: 9px;
+    color: #00BCD4;
+}
+
+.icon-rocket {
+    margin-right: 9px;
+    color: #1976D2;
+}
+
+.icon-bug {
+    margin-right: 9px;
+    color: #512DA8;
+}
+
+.icon-floppy {
+    margin-right: 9px;
+    color: #C62828;
+}
+
+.icon-file-code {
+    margin-right: 9px;
+    color: #00BFA5;
+}
+
+.icon-graduation-cap {
+    margin-right: 9px;
+    color: #0D47A1;
+}
+
+.icon-cog-alt {
+    margin-right: 9px;
+    color: #90A4AE;
 }
 
 @media (min-width: 768px)
@@ -36,4 +79,26 @@ hr
         margin-left: auto;
         margin-right: auto;
     }
+}
+
+.switch-button
+{
+    padding: 0 16px;
+    line-height: 48px;
+    font-size: 16px;
+}
+
+.switch-button-title
+{
+    float: left;
+}
+
+.switch-button-switch
+{
+    float: right;
+}
+
+.switch-button-end
+{
+    clear: both;
 }

@@ -12,7 +12,7 @@ body
     height: 100%;
 
     font-family: Courier New, Courier, Lucida Sans Typewriter;
-    font-size: 22px;
+    font-size: 20px;
 
 	resize: none;
 }
@@ -26,7 +26,7 @@ body
 .btn-line
 {
     border-bottom: 1px solid;
-    border-color: rgba(0, 0, 0, 0.15);
+    border-color: rgba(0, 0, 0, 0.09);
 }
 
 #menu-btns > li > a {
@@ -79,4 +79,33 @@ body
         margin-left: auto;
         margin-right: auto;
     }
+}
+
+.mul-button
+{
+    padding: 0 16px;
+    line-height: 48px;
+    font-size: 16px;
+}
+
+.mul-button-title
+{
+    float: left;
+}
+
+.mul-button-mul
+{
+    float: right;
+    margin-right: 15px;
+}
+
+.mul-button-end
+{
+    clear: both;
+}
+
+#font-test
+{
+    text-align: center;
+    line-height: 55px;
 }

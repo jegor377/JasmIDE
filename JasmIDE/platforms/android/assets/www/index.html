@@ -8,6 +8,7 @@
         <title>JASM IDE</title>
         <link rel="stylesheet" href="css/framework7.material.min.css">
         <link rel="stylesheet" href="css/framework7.material.colors.min.css">
+        <link rel="stylesheet" href="css/appfont.css">
         <link rel="stylesheet" href="css/my-app.css">
     </head>
     <body>
@@ -26,27 +27,25 @@
                             <div class="list-block">
                                 <ul id="menu-btns">
                                     <li>
-                                        <a href="#" class="item-link list-button">Compile</a>
+                                        <a href="#" class="item-link list-button"><i class="icon-cubes"></i><span class="menu-option-text">Compile</span></a>
                                     </li>
                                     <li>
-                                        <a href="#" class="item-link list-button">Run</a>
+                                        <a href="#" class="item-link list-button"><i class="icon-rocket"></i><span class="menu-option-text">Run</span></a>
+                                    </li>
+                                    <li class="btn-line">
+                                        <a href="#" class="item-link list-button"><i class="icon-bug"></i><span class="menu-option-text">Debug</span></a>
                                     </li>
                                     <li>
-                                        <a href="#" class="item-link list-button">Debug</a>
+                                        <a href="#" class="item-link list-button"><i class="icon-floppy"></i><span class="menu-option-text">Save</span></a>
                                     </li>
-                                    <hr/>
-                                    <li>
-                                        <a href="#" class="item-link list-button">Save</a>
-                                    </li>
-                                    <li>
-                                        <a href="#" class="item-link list-button">Open</a>
-                                    </li>
-                                    <hr/>
-                                    <li>
-                                        <a href="#" class="item-link list-button">Reference</a>
+                                    <li class="btn-line">
+                                        <a href="#" class="item-link list-button"><i class="icon-file-code"></i><span class="menu-option-text">Open</span></a>
                                     </li>
                                     <li>
-                                        <a href="settings.html" class="item-link list-button">Settings</a>
+                                        <a href="#" class="item-link list-button"><i class="icon-graduation-cap"></i><span class="menu-option-text">Reference</span></a>
+                                    </li>
+                                    <li>
+                                        <a href="settings.html" class="item-link list-button"><i class="icon-cog-alt"></i><span class="menu-option-text">Settings</span></a>
                                     </li>
                                 </ul>
                             </div>
@@ -63,13 +62,14 @@
                             <div class="navbar-inner">
                                 <div class="center">JASM IDE</div>
                                 <div class="right">
+                                    <a href="#" class="link icon-only create-new-file"><i class="icon icon-plus"></i></a>
                                     <a href="#" class="link icon-only open-panel"><i class="icon icon-bars"></i></a>
                                 </div>
                             </div>
                         </div>
                         <div id="program-wnd" class="page-content">
                             <div id="code-wnd">
-                                <textarea id="code"></textarea>
+                                <textarea id="code" wrap="off"></textarea>
                             </div>
                         </div>
                     </div>

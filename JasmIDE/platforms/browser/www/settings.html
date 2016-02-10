@@ -5,13 +5,55 @@
 			<div class="left">
 				<a href="#" class="back link">
 					<i class="icon icon-back"></i>
-			  	</a>
+				</a>
 			</div>
 			<div class="center">Settings</div>
 		</div>
 	</div>
 	<div class="page-content">
-		settings
+        <div class="list-block">
+            <ul>
+                <li>
+                    <div class="mul-button">
+                        <div class="mul-button-title">Autosave</div>
+                        <div class="mul-button-mul">
+                            <label class="label-switch">
+                                <input id="autosave" type="checkbox">
+                                <div class="checkbox"></div>
+                            </label>
+                        </div>
+                        <div class="mul-button-end"></div>
+                    </div>
+                </li>
+                <li>
+                    <a href="#" id="autosave-delay-button" class="list-button item-link">Autosave delay: <span id="autosave-delay"></span> mins</a>
+                </li>
+            </ul>
+        </div>
+        <div class="content-block-title">Font</div>
+        <div class="list-block">
+            <ul>
+                <li class="btn-line">
+                    <a href="#" id="change-font" class="list-button item-link">Change font</a>
+                </li>
+                <li class="btn-line">
+                    <div class="mul-button">
+                        <div class="mul-button-title">Font size</div>
+                        <div class="mul-button-mul">
+                            <div class="range-slider">
+                                <input id="font-size" type="range" min="15" max="35" value="20" step="1">
+                            </div>
+                        </div>
+                        <div class="mul-button-end"></div>
+                    </div>
+                </li>
+                <li>
+                    <div id="font-test">
+                        Zażółć gęślą jaźn
+                    </div>
+                </li>
+            </ul>
+        </div>
 	</div>
   </div>
 </div>
