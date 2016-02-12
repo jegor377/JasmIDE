@@ -27,6 +27,7 @@ app = {
         project = {
             wasSaved: false,
             projectPath: null,
+            promptClosed: false,
             settings: {
                 autosave: {
                     isSet: false,
@@ -51,7 +52,7 @@ app = {
         });
 
         $$('.create-new-file').on('click', function(){
-            if(project.wasSaved) {
+            if(!project.wasSaved) {
                 myApp.modal({
                     title: 'Warning!',
                     text: "You didn't save your project. Do you want to save?",
@@ -59,18 +60,59 @@ app = {
                         {
                             text: 'Yes',
                             onClick: function() {
-                                myApp.alert("You choosed save option.");
+                                app.saveProject();
+                                $$('#code').val("");
                             }
                         },
                         {
                             text: 'No',
                             onClick: function() {
-                                myApp.alert("You choosed not save option");
+                                $$('#code').val("");
                             }
                         }
                     ]
                 });
-            }
+            } else $$('#code').val("");
+            project.projectPath = null;
+            app.saveProject();
+        });
+
+        $$('#code').on('change', function(){
+            project.wasSaved = false;
+        });
+
+        $$('#save-file').on('click', function(){
+            app.saveProject();
+        });
+
+        $$('#load-file').on('click', function(){
+            fileChooser.open(function(uri) {
+                var path = "file://"+uri.filepath;
+                if(uri.filepath != "") {
+                    pathEntries = path.split('/');
+                    project.projectPath = pathEntries[pathEntries.length-1].split('.')[0];
+                }
+
+                gotFile = function(fileEntry){
+                    fileEntry.file(function(file) {
+                        var reader = new FileReader();
+                        reader.onloadend = function(e) {
+                            var content = this.result;
+                            $$('#code').val(content);
+                            project.wasSaved = true;
+                        };
+                        reader.readAsText(file);
+                    });
+                };
+
+                fail = function(error){
+                    alert("Cannot to load file.");
+                };
+
+                window.resolveLocalFileSystemURL(path, gotFile, fail);
+            }, function(error){
+                alert("Cannot to load file.");
+            });
         });
 
         myApp.onPageInit("settings", function(page){
@@ -137,16 +179,6 @@ app = {
         myApp.onPageBack('settings', function(page){
             app.setCodeSettings();
         });
-
-        myApp.onPageInit('save', function(page){
-            app.createFile("test.txt", "TEST FILE", "show-directory-folders");
-            app.readFile("test.txt", "show-directory-folders");
-            app.readDirectoryEntries("show-directory-folders");
-            //app.testLoadDir("show-directory-folders");
-            
-
-            $$('.click-me').on('click', function(){app.testFileChooser("show-directory-folders"); myApp.alert("You clicked it");});
-        });
     },
 
     setSettingsOptions: function(){
@@ -204,97 +236,68 @@ app = {
         app.setCodeFontSize();
     },
 
-    readDirectoryEntries: function(id) {
-        window.requestFileSystem(LocalFileSystem.PERSISTENT, 0, function(fs){
-            dirReader = fs.root.createReader();
-
-            dirReader.readEntries(function(res){
-                if(res.length != 0) {
-                    for(var index in res)
-                    {
-                        console.log(res[index]);
-                        var node = document.createElement("LI");
-                        var nodeEntry = document.createTextNode(res[index].name);
-                        node.appendChild(nodeEntry);
-                        document.getElementById(id).appendChild(node);
-                    }
+    askForProjectName: function() {
+        if(project.projectPath == null){
+            myApp.prompt('Type project name:', 'Project Name', function(value){
+                if(value.length == 0)
+                {
+                    myApp.alert("You didn't type project name!");
+                    app.askForProjectName();
+                } else {
+                    project.projectPath = value.replace('\\', '').replace('/', '').replace('.', '');
                 }
-            }, app.fileSystemError);
-
-        }, app.fileSystemError);
+            }, function(){
+                project.promptClosed = true;
+            });
+        }
     },
 
-    createFile: function(path, text, id){
-        window.requestFileSystem(LocalFileSystem.PERSISTENT, 0, function(fs){
-            fs.root.getFile(path, {create: true, exclusive: false}, function(fe){
-                fe.createWriter(function(fw){
-                    fw.onwriteend = function() {
-                        console.log("The file has been saved correctly!");
-                        var node = document.createElement("LI");
-                        var nodeEntry = document.createTextNode("The file has been saved correctly!");
-                        node.appendChild(nodeEntry);
-                        document.getElementById(id).appendChild(node);
-                    };
-
-                    fw.write(text);
-                }, app.fileSystemError);
-            }, app.fileSystemError);
-        }, app.fileSystemError);
+    saveProject: function(){
+        project.promptClosed = false;
+        if(project.projectPath == null && project.promptClosed==false) app.askForProjectName();
+        if(project.promptClosed == false) app.updateProject();
     },
 
-    readFile: function(path, id){
-        window.requestFileSystem(LocalFileSystem.PERSISTENT, 0, function(fs){
-            fs.root.getFile(path, null, function(fe){
-                fe.file(function(file){
-                    reader = new FileReader();
+    updateProject: function() {
+        if(project.projectPath != null) {
+            window.resolveLocalFileSystemURL(cordova.file.externalRootDirectory, function(fileSystem){
+                fileSystem.getDirectory("JASMIDE", {create: true, exclusive: false}, function(dirEntry){
+                    dirEntry.getFile(project.projectPath+".asm", {create: true, exclusive: false}, function(fileEntry){
+                        fileEntry.createWriter(function(fileWriter){
+                            container = $$('body');
+                            if (container.children('.progressbar, .progressbar-infinite').length) {
+                                myApp.hideProgressbar(container);
+                            }
+                            myApp.showProgressbar(container, 0, "green");
+                            fileWriter.onprogress = function(progressEvent) {
+                                container = $$('body');
+                                myApp.setProgressbar(container, progressEvent.loaded / progressEvent.total);
+                            };
 
-                    reader.onloadend = function(data){
-                        text = data.target.result;
-                        console.log("File Readed Correctly : "+text);
-                        var node = document.createElement("LI");
-                        var nodeEntry = document.createTextNode(text);
-                        node.appendChild(nodeEntry);
-                        document.getElementById(id).appendChild(node);
-                    };
+                            fileWriter.onwriteend = function(evt) {
+                                container = $$('body');
+                                myApp.hideProgressbar(container);
+                                myApp.addNotification({
+                                    message: 'File saved'
+                                });
+                                project.wasSaved = true;
+                            };
 
-                    reader.readAsText(file);
-
-                }, app.fileSystemError);
-            }, app.fileSystemError);
-        }, app.fileSystemError);
-    },
-
-    testLoadDir: function(id) {
-        errorHandler = function( error ) {
-            alert( error.error );
-        };
-        successHandler = function( fileEntry ) {
-            alert( fileEntry.name + " | " + fileEntry.fullPath );
-        };
-        new ExternalStorageSdcardAccess( successHandler, errorHandler ).scanPath( "file:///" );
-    },
-
-    testFileChooser: function(id) {
-        fileChooser.open(function(uri) {
-            alert("KURWA DZIAŁA! "+uri);
-        }, function(error){
-            alert("Chuja tam działa... ;-; "+error.message);
-        });
-        // success = function(data){
-        //     alert("SUKCES KURWA! "+data.filepath);
-        //     app.readFile(data.filepath, "show-directory-folders");
-        // };
-
-        // error = function(error){
-        //     alert("Chuja nie sukces... ;-; "+error);
-        // };
-        
-        // filechooser.open({},success,error);
-    },
-
-    fileSystemError: function(error) {
-        myApp.alert("FILE SYSTEM ERROR : "+error.message);
-        console.log(error);
+                            data = $$('#code').val();
+                            fileWriter.write(data);
+                        }, function(error){
+                            myApp.alert("Cannot to save file.");
+                        });
+                    }, function(error){
+                        myApp.alert("Cannot to save file.");
+                    });
+                }, function(error){
+                    myApp.alert("Cannot to save file.");
+                });
+            }, function(error){
+                myApp.alert("Cannot to save file.");
+            });
+        }
     }
 };
 
