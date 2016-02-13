@@ -27,6 +27,7 @@ app = {
         project = {
             wasSaved: false,
             projectPath: null,
+            promptClosed: false,
             settings: {
                 autosave: {
                     isSet: false,
@@ -71,7 +72,9 @@ app = {
                         }
                     ]
                 });
-            }
+            } else $$('#code').val("");
+            project.projectPath = null;
+            app.saveProject();
         });
 
         $$('#code').on('change', function(){
@@ -242,13 +245,20 @@ app = {
                     app.askForProjectName();
                 } else {
                     project.projectPath = value.replace('\\', '').replace('/', '').replace('.', '');
-                    myApp.alert("You need to click save button again.");
                 }
+            }, function(){
+                project.promptClosed = true;
             });
         }
     },
 
-    saveProject: function() {
+    saveProject: function(){
+        project.promptClosed = false;
+        if(project.projectPath == null && project.promptClosed==false) app.askForProjectName();
+        if(project.promptClosed == false) app.updateProject();
+    },
+
+    updateProject: function() {
         if(project.projectPath != null) {
             window.resolveLocalFileSystemURL(cordova.file.externalRootDirectory, function(fileSystem){
                 fileSystem.getDirectory("JASMIDE", {create: true, exclusive: false}, function(dirEntry){
@@ -287,7 +297,7 @@ app = {
             }, function(error){
                 myApp.alert("Cannot to save file.");
             });
-        } else app.askForProjectName();
+        }
     }
 };
 
