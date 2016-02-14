@@ -54,7 +54,7 @@ function JASMCompiler() {
 				} else throw new CodeErrorException("Label ["+labelName+"] already exists.", index);
 			}
 		}
-		memory.pushMemory(new NumberMemory(65534)); // program end pointer
+		memory.pushMemory(new NumberMemory(1));
 
 		return {
 			Memory: memory,
@@ -72,36 +72,45 @@ function JASMRuntimeEnvironment() {
 	};
 
 	this.run = function(ProgramData) {
-		console.log("Start");
-		console.log(ProgramData);
 		this.programEnvironment.programData = ProgramData;
-		console.log(this.programEnvironment.programData);
+
+		maxMemorySize = 65535; // beqause 2^16 = 65536, but we count from 0, so it's 65535
+		minMemorySize = 0;
 
 		this.programEnvironment.registers.setRegisterByName('sp', 
-			new SizedBitSet(16).setTo(this.programEnvironment.programData.SpStart), true);
+			new SizedBitSet(16).setTo(setArchitectureAddressToRelativeAddress(this.programEnvironment.programData.SpStart)), true);
 
-		this.setIP(new SizedBitSet(16));
+		this.setIP(new SizedBitSet(16).setTo(maxMemorySize));
 
 		ip = this.getIP();
-		maxMemorySize = 65535; // 2^16 == 65536
-		while(ip.parseDec() < maxMemorySize)
+		while(ip.parseDec() > minMemorySize)
 		{
+			comAddress = setAddressToMemoryArchitectureAddress(ip.parseDec());
 			try
 			{
-				this.invokeMnemonicByMemory(ip.parseDec());
-				this.incrementIP();
+				this.invokeMnemonicByMemory(comAddress);
+				this.manageSpRegister();
+				this.decrementIP();
 				ip = this.getIP();
+				console.log(comAddress);
 			}
 			catch(e) {
-				throw new CodeErrorException(e.message, this.getIP().parseDec());
+				throw new CodeErrorException(e.message, comAddress);
 			}
 		}
 	};
 
-	this.incrementIP = function() {
+	this.manageSpRegister = function() {
+		sp = setArchitectureAddressToRelativeAddress(this.programEnvironment.registers.getRegisterByName('sp', true).parseDec());
+		if(sp < this.programEnvironment.programData.Memory.memory.length-1) {
+			this.programEnvironment.programData.Memory.memory = this.programEnvironment.programData.Memory.memory.slice(0, sp+1);
+		}
+	};
+
+	this.decrementIP = function() {
 		oldValue = this.programEnvironment.registers.getRegisterByName('ip', true);
 		toAdd = new SizedBitSet(16).setTo(1);
-		newAddress = oldValue.add(toAdd);
+		newAddress = oldValue.sub(toAdd);
 		this.programEnvironment.registers.setRegisterByName('ip', newAddress, true);
 	};
 
@@ -171,12 +180,12 @@ function Registers() {
 						return register.getMemory(name);
 					} else {
 						if(!register.isShared) throw new CodeErrorException("Cannot get data from ["+name+"] register.");
-						else return register.getMemory(name);
+						return register.getMemory(name);
 					}
 				}
 			}
 		}
-		throw new CodeErrorException("There is no ["+name+"] register.");
+		return null;
 	}
 
 	this.setRegisterByName = function(name, memory, priority) {
@@ -188,12 +197,12 @@ function Registers() {
 						return this.registers[regIndex].setMemory(name, memory);
 					} else {
 						if(!register.isShared) throw new CodeErrorException("Cannot set data in ["+name+"] register.");
-						else return this.registers[regIndex].setMemory(name, memory);
+						return this.registers[regIndex].setMemory(name, memory);
 					}
 				}
 			}
 		}
-		throw new CodeErrorException("There is no ["+name+"] register.");
+		return null;
 	}
 }
 
@@ -602,7 +611,7 @@ function RegisterIP() {
 	};
 }
 
-function CodeErrorException(message, line) {
+function CodeErrorException(message, line, isRegisterException) {
 	this.message = message;
 	this.line = line;
 }
@@ -624,6 +633,13 @@ function Labels() {
 			if(this.labels[index].name == name) return true;
 		}
 		return false;
+	}
+
+	this.getLabel = function(name) {
+		for(var index in this.labels) {
+			if(this.labels[index].name == name) return this.labels[index];
+		}
+		return null;
 	}
 }
 

@@ -1,13 +1,14 @@
 function FMnemonics() {
+	this.addressConverter = new AddressConverter();
 	this.mnemonics = [];
-	this.mnemonics['add'] = new JAdd();
-	this.mnemonics['sub'] = new JSub();
-	this.mnemonics['mov'] = new JMov();
-	this.mnemonics['call'] = new JCall();
+	this.mnemonics['add'] = new JAdd(this.addressConverter);
+	this.mnemonics['sub'] = new JSub(this.addressConverter);
+	this.mnemonics['mov'] = new JMov(this.addressConverter);
+	this.mnemonics['call'] = new JCall(this.addressConverter);
 	this.mnemonics['ret'] = new JRet();
-	this.mnemonics['in'] = new JIn();
-	this.mnemonics['out'] = new JOut();
-	this.mnemonics['push'] = new JPush();
+	this.mnemonics['in'] = new JIn(this.addressConverter);
+	this.mnemonics['out'] = new JOut(this.addressConverter);
+	this.mnemonics['push'] = new JPush(this.addressConverter);
 
 	this.getMnemonicByLine = function(line) {
 		mnemonic = line.toLowerCase().split(' ')[0];
@@ -21,30 +22,56 @@ function FMErrorException(message)
 	this.message = message;
 }
 
-function JAdd()
+function JAdd(addressConverter)
 {
+	this.addressConverter = addressConverter;
 	this.doOperation = function(line, programEnvironment) {
 		return programEnvironment;
 	};
 }
 
-function JSub()
+function JSub(addressConverter)
 {
+	this.addressConverter = addressConverter;
 	this.doOperation = function(line, programEnvironment) {
 		return programEnvironment;
 	};
 }
 
-function JMov()
+function JMov(addressConverter)
 {
+	this.addressConverter = addressConverter;
 	this.doOperation = function(line, programEnvironment) {
 		return programEnvironment;
 	};
 }
 
-function JCall()
+function JCall(addressConverter)
 {
+	this.addressConverter = addressConverter;
 	this.doOperation = function(line, programEnvironment) {
+		commandMember = line.substr(4, line.length-4).trim();
+
+		if(checkIfMemberIsNumber(commandMember)) {
+			jmpAddress = parseInt(commandMember, 10);
+		}
+		else if(checkIfMemberIsLabel(commandMember, programEnvironment)) {
+			jmpAddress = programEnvironment.programData.Labels.getLabel(commandMember).address;
+		}
+		else if(checkIfMemberIsMemoryReference(commandMember)) {
+			jmpAddress = this.addressConverter.getValueFromAddress(commandMember, programEnvironment);
+		}
+		else if(checkIfMemberIsRegister(commandMember, programEnvironment)) {
+			jmpAddress = programEnvironment.registers.getRegisterByName(commandMember, false).parseDec();
+		}
+		else throw new FMErrorException("Incorrect address ["+commandMember+"].");
+
+		actualIP = programEnvironment.registers.getRegisterByName('ip', true);
+		callbackAddress = actualIP;
+		programEnvironment = PushElementOnStack(callbackAddress.parseDec(), programEnvironment);
+		relativeJmpAddress = setArchitectureAddressToRelativeAddress(jmpAddress-1);
+		programEnvironment.registers.setRegisterByName('ip', new SizedBitSet(16).setTo(relativeJmpAddress), true);
+
 		return programEnvironment;
 	};
 }
@@ -52,36 +79,76 @@ function JCall()
 function JRet()
 {
 	this.doOperation = function(line, programEnvironment) {
-		sp = programEnvironment.registers.getRegisterByName('sp', false);
-		if(sp.parseDec() >= programEnvironment.programData.SpStart)
-		{
-			jmpAddress = programEnvironment.programData.Memory.getMemory(sp.parseDec());
-			programEnvironment.registers.setRegisterByName('ip', jmpAddress.memory, true);
-			programEnvironment.registers.setRegisterByName('sp', sp.sub(new SizedBitSet(1)), false);
-			programEnvironment.programData.Memory.memory.pop();
+		result = PopElementFromStack(programEnvironment);
+		programEnvironment = result.ProgramEnvironment;
+
+		programEnvironment.registers.setRegisterByName('ip', result.element.memory, true);
+
+		return programEnvironment;
+	};
+}
+
+function JIn(addressConverter)
+{
+	this.addressConverter = addressConverter;
+	this.doOperation = function(line, programEnvironment) {
+		return programEnvironment;
+	};
+}
+
+function JOut(addressConverter)
+{
+	this.addressConverter = addressConverter;
+	this.doOperation = function(line, programEnvironment) {
+		return programEnvironment;
+	};
+}
+
+function JPush(addressConverter)
+{
+	this.addressConverter = addressConverter;
+	this.doOperation = function(line, programEnvironment) {
+		commandMember = line.substr(4, line.length-4).trim();
+		if(checkIfMemberIsNumber(commandMember)) {
+			pushData = parseInt(commandMember, 10);
 		}
+		else if(checkIfMemberIsLabel(commandMember, programEnvironment)) {
+			pushData = programEnvironment.programData.Labels.getLabel(commandMember).address;
+		}
+		else if(checkIfMemberIsMemoryReference(commandMember)) {
+			pushData = this.addressConverter.getValueFromAddress(commandMember, programEnvironment);
+		}
+		else if(checkIfMemberIsRegister(commandMember, programEnvironment)) {
+			pushData = programEnvironment.registers.getRegisterByName(commandMember, false).parseDec();
+		}
+		else throw new FMErrorException("Incorrect expression ["+commandMember+"].");
+
+		programEnvironment = PushElementOnStack(pushData, programEnvironment);
+		
 		return programEnvironment;
 	};
 }
 
-function JIn()
-{
-	this.doOperation = function(line, programEnvironment) {
+function PushElementOnStack(number, programEnvironment) {
+	actualSP = programEnvironment.registers.getRegisterByName('sp', false);
+	if(actualSP.parseDec() > 0)
+	{
+		programEnvironment.programData.Memory.pushMemory(new NumberMemory(number));
+		newSP = actualSP.sub(new SizedBitSet(16).setTo(1));
+		programEnvironment.registers.setRegisterByName('sp', newSP, false);
 		return programEnvironment;
-	};
+	} else throw new FMErrorException("Stack overflow.");
 }
 
-function JOut()
-{
-	this.doOperation = function(line, programEnvironment) {
-		return programEnvironment;
-	};
-}
-
-function JPush()
-{
-	this.doOperation = function(line, programEnvironment) {
-		return programEnvironment;
+function PopElementFromStack(programEnvironment) {
+	actualSP = programEnvironment.registers.getRegisterByName('sp', false);
+	relativeAddress = setAddressToMemoryArchitectureAddress(actualSP.parseDec());
+	stackElement = programEnvironment.programData.Memory.getMemory(relativeAddress);
+	newSP = actualSP.add(new SizedBitSet(16).setTo(1));
+	programEnvironment.registers.setRegisterByName('sp', newSP, false);
+	return {
+		element: stackElement,
+		ProgramEnvironment: programEnvironment
 	};
 }
 
@@ -105,29 +172,16 @@ function AddressConverter()
 
 function RegAndDisposeAddressConverter()
 {
-	this.isNumber = function(string) {
-		return !isNaN(string);
-	};
-
-	this.checkIfDisposeIsLabel = function(addressDispose, programEnvironment) {
-		if(!this.isNumber(addressDispose) && programEnvironment.programData.Labels.hasLabel(addressDispose)) return true;
-		return false;
-	};
-
-	this.setRegiserAddressToMemoryArchitectureAddress = function(addressRegister, programEnvironment) {
-		registerValue = programEnvironment.registers.getRegisterByName(addressRegister, false);
-		maxMemorySize = 65535;
-		return Math.abs(registerValue.parseDec()-maxMemorySize);
-	};
-
 	this.getValueFromAddress = function(addressMembers, programEnvironment) {
 		addressRegister = addressMembers[0];
 		addressDispose = addressMembers[1];
-		if(this.checkIfDisposeIsLabel(addressDispose)) throw new FMErrorException("Dispose cannot be a label.");
-		registerValue = this.setRegiserAddressToMemoryArchitectureAddress(addressRegister, programEnvironment);
+		if(checkIfMemberIsLabel(addressDispose, programEnvironment)) throw new FMErrorException("Dispose cannot be a label. It must be a constant value.");
+		if(checkIfMemberIsLabel(addressDispose, programEnvironment)) throw new FMErrorException("Register cannot be a label. It must be the name of a register.");
+		if(checkIfMemberIsNumber(addressRegister)) throw new FMErrorException("Register cannot be a constant value. It must be the name of a register.");
+		registerValue = setRegisterAddressToMemoryArchitectureAddress(addressRegister, programEnvironment);
 		relativeAddress = programEnvironment.programData.Memory.getMemory(registerValue+parseInt(addressDispose, 10));
 		if(relativeAddress.type == "com") throw new FMErrorException("The memory is not a command. Cannot to perform this data.");
-		return relativeAddress.memory.parseDec().toString();
+		return relativeAddress.memory.parseDec();
 	};
 }
 
@@ -135,5 +189,45 @@ function OnlyRegAddressConverter()
 {
 	this.getValueFromAddress = function(addressMembers, programEnvironment) {
 		addressRegister = addressMembers[0];
+		if(checkIfMemberIsLabel(addressRegister, programEnvironment)) throw new FMErrorException("Register cannot be a label. It must be the name of a register.");
+		if(checkIfMemberIsNumber(addressRegister)) throw new FMErrorException("Register cannot be a constant value. It must be the name of a register.");
+		registerValue = setRegisterAddressToMemoryArchitectureAddress(addressRegister, programEnvironment);
+		relativeAddress = programEnvironment.programData.Memory.getMemory(registerValue);
+		if(relativeAddress.type == "com") throw new FMErrorException("The memory is not a command. Cannot to perform this data.");
+		return relativeAddress.memory.parseDec();
 	};
+}
+
+function setAddressToMemoryArchitectureAddress(address) {
+	maxMemorySize = 65535;
+	return Math.abs(address - maxMemorySize);
+}
+
+function setArchitectureAddressToRelativeAddress(address) {
+	maxMemorySize = 65535;
+	return maxMemorySize - address;
+}
+
+function setRegisterAddressToMemoryArchitectureAddress(addressRegister, programEnvironment) {
+	registerValue = programEnvironment.registers.getRegisterByName(addressRegister, false);
+	maxMemorySize = 65535;
+	return Math.abs(registerValue.parseDec()-maxMemorySize);
+};
+
+function checkIfMemberIsMemoryReference(member) {
+	return member.charAt(0) == '[' && member.charAt(member.length-1) == ']';
+}
+
+function checkIfMemberIsNumber(member) {
+	return !isNaN(member);
+}
+
+function checkIfMemberIsLabel(member, programEnvironment) {
+	if(!checkIfMemberIsNumber(member) && programEnvironment.programData.Labels.hasLabel(member)) return true;
+	return false;
+}
+
+function checkIfMemberIsRegister(member, programEnvironment) {
+	if(programEnvironment.registers.getRegisterByName(member, true) != null) return true;
+	return false;
 }
