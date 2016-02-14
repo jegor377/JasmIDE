@@ -26,10 +26,11 @@ function JASMCompiler() {
 		return command == 'dd';
 	};
 
+	// returns ProgramData
 	this.compile = function(code) {
 		codeLines = this.removeGarbage(code);
 
-		memory = [];
+		memory = new Memory();
 		labels = new Labels();
 
 		address = 0;
@@ -37,12 +38,12 @@ function JASMCompiler() {
 			line = codeLines[index];
 			if(!this.isLabel(line)) {
 				if(!this.isSuperCommand(line)) {
-					memory.push(new CommandMemory(line));
+					memory.pushMemory(new CommandMemory(line));
 					address++;
 				} else {
 					data = DefineData(line);
 					for(var i in data) {
-						memory.push(data[i]);
+						memory.pushMemory(data[i]);
 						address++;
 					}
 				}
@@ -53,11 +54,551 @@ function JASMCompiler() {
 				} else throw new CodeErrorException("Label ["+labelName+"] already exists.", index);
 			}
 		}
+		memory.pushMemory(new NumberMemory(65534)); // program end pointer
 
 		return {
 			Memory: memory,
-			Labels: labels
+			Labels: labels,
+			SpStart: memory.memory.length-1
 		};
+	};
+}
+
+function JASMRuntimeEnvironment() {
+	this.programEnvironment = {
+		registers: new Registers(),
+		mnemonics: new FMnemonics(),
+		programData: null
+	};
+
+	this.run = function(ProgramData) {
+		console.log("Start");
+		console.log(ProgramData);
+		this.programEnvironment.programData = ProgramData;
+		console.log(this.programEnvironment.programData);
+
+		this.programEnvironment.registers.setRegisterByName('sp', 
+			new SizedBitSet(16).setTo(this.programEnvironment.programData.SpStart), true);
+
+		this.setIP(new SizedBitSet(16));
+
+		ip = this.getIP();
+		maxMemorySize = 65535; // 2^16 == 65536
+		while(ip.parseDec() < maxMemorySize)
+		{
+			try
+			{
+				this.invokeMnemonicByMemory(ip.parseDec());
+				this.incrementIP();
+				ip = this.getIP();
+			}
+			catch(e) {
+				throw new CodeErrorException(e.message, this.getIP().parseDec());
+			}
+		}
+	};
+
+	this.incrementIP = function() {
+		oldValue = this.programEnvironment.registers.getRegisterByName('ip', true);
+		toAdd = new SizedBitSet(16).setTo(1);
+		newAddress = oldValue.add(toAdd);
+		this.programEnvironment.registers.setRegisterByName('ip', newAddress, true);
+	};
+
+	this.setIP = function(newValue) {
+		this.programEnvironment.registers.setRegisterByName('ip', newValue, true);
+	};
+	
+	this.getIP = function() {
+		return this.programEnvironment.registers.getRegisterByName('ip', true);
+	};
+
+	this.invokeMnemonicByMemory = function(memAddress) {
+		code = this.programEnvironment.programData.Memory.getMemory(memAddress);
+		try
+		{
+			if(code.type == "com") {
+				mnemonic = this.programEnvironment.mnemonics.getMnemonicByLine(code.memory);
+				mnemonic.doOperation(code.memory, this.programEnvironment);
+			} else throw new CodeErrorException("The memory is not a command. Cannot to perform this data.", null);
+		}
+		catch(e)
+		{
+			throw new CodeErrorException(e.message, null);
+		}
+	};
+}
+
+function Memory() {
+	this.memory = [];
+	this.pushMemory = function(memory) {
+		this.memory.push(memory);
+	};
+
+	this.popMemory = function() {
+		return this.memory.pop();
+	};
+
+	this.setMemory = function(mem, address) {
+		this.memory[address] = mem;
+	};
+
+	this.getMemory = function(address) {
+		return this.memory[address] == undefined ? new NumberMemory(0) : this.memory[address];
+	};
+}
+
+function Registers() {
+	this.registers = [
+		new RegisterAX(),
+		new RegisterBX(),
+		new RegisterCX(),
+		new RegisterDX(),
+		new RegisterSP(),
+		new RegisterBP(),
+		new RegisterSI(),
+		new RegisterDI(),
+		new RegisterFLAGS(),
+		new RegisterIP()
+	];
+
+	this.getRegisterByName = function(name, priority) {
+		for(var regIndex in this.registers) {
+			register = this.registers[regIndex];
+			for(var nameIndex in register.name) {
+				if(register.name[nameIndex] == name) {
+					if(priority) {
+						return register.getMemory(name);
+					} else {
+						if(!register.isShared) throw new CodeErrorException("Cannot get data from ["+name+"] register.");
+						else return register.getMemory(name);
+					}
+				}
+			}
+		}
+		throw new CodeErrorException("There is no ["+name+"] register.");
+	}
+
+	this.setRegisterByName = function(name, memory, priority) {
+		for(var regIndex in this.registers) {
+			register = this.registers[regIndex];
+			for(var nameIndex in register.name) {
+				if(register.name[nameIndex] == name) {
+					if(priority) {
+						return this.registers[regIndex].setMemory(name, memory);
+					} else {
+						if(!register.isShared) throw new CodeErrorException("Cannot set data in ["+name+"] register.");
+						else return this.registers[regIndex].setMemory(name, memory);
+					}
+				}
+			}
+		}
+		throw new CodeErrorException("There is no ["+name+"] register.");
+	}
+}
+
+function Devices() {
+	this.devices = [
+		new DeviceDecSendOutput(),
+		new DeviceSignedDecSendOutput(),
+		new DeviceCharSendOutput(),
+		new DeviceDecOutput(),
+		new DeviceSignedDecOutput(),
+		new DeviceCharOutput(),
+		new DeviceDecInput(),
+		new DeviceSignedDecInput(),
+		new DeviceStringInput()
+	];
+	this.setting = {
+		buffers : {
+			input : "",
+			output : ""
+		},
+		streams : {
+			outputElement : null,
+			inputElement : null
+		}
+	};
+
+	this.inDevice = function(memory, information, port) {
+		returnMemory = memory;
+		if(port >= 0 && port < this.devices.length) {
+			result = this.devices[port].in(memory, information, this.setting);
+			this.setting = result.Setting;
+			returnMemory = result.Memory;
+		}
+		return returnMemory;
+	};
+
+	this.outDevice = function(memory, information, port) {
+		returnMemory = memory;
+		if(port >= 0 && port < this.devices.length) {
+			result = this.devices[port].out(memory, information, this.setting);
+			this.setting = result.Setting;
+			returnMemory = result.Memory;
+		}
+		return returnMemory;
+	};
+}
+
+function DeviceDecSendOutput() {
+	this.in = function(memory, information, setting) {
+		setting.buffers.output += information.parseDec().toString();
+		return {
+			Memory: memory,
+			Setting: setting
+		};
+	};
+
+	this.out = function(memory, information) {
+		return {
+			Memory: memory,
+			Setting: setting
+		};
+	};
+}
+
+function DeviceSignedDecSendOutput() {
+	this.in = function(memory, information, setting) {
+		setting.buffers.output += information.parseSignedDec().toString();
+		return {
+			Memory: memory,
+			Setting: setting
+		};
+	};
+
+	this.out = function(memory, information) {
+		return {
+			Memory: memory,
+			Setting: setting
+		};
+	};
+}
+
+function DeviceCharSendOutput() {
+	this.in = function(memory, information, setting) {
+		setting.buffers.output += information.parseDec() == 10 ? '<br/>' : String.fromCharCode(information.parseDec());
+		return {
+			Memory: memory,
+			Setting: setting
+		};
+	};
+
+	this.out = function(memory, information, setting) {
+		return {
+			Memory: memory,
+			Setting: setting
+		};
+	};
+}
+
+function DeviceDecOutput() {
+	this.in = function(memory, information, setting) {
+		if(setting.streams.outputElement != null)
+		{
+			setting.streams.outputElement.innerHTML = setting.streams.outputElement.innerHTML + setting.buffers.output;
+			setting.buffers.output = "";
+		} else throw new CodeErrorException("There is no output element pinned.");
+		return {
+			Memory: memory,
+			Setting: setting
+		};
+	};
+
+	this.out = function(memory, information, setting) {
+		return {
+			Memory: memory,
+			Setting: setting
+		};
+	};
+}
+
+function DeviceSignedDecOutput() {
+	this.in = function(memory, information, setting) {
+		if(setting.streams.outputElement != null)
+		{
+			setting.streams.outputElement.innerHTML = setting.streams.outputElement.innerHTML + 
+				(setting.buffers.output.charAt(0) != '-' ? parseInt(setting.buffers.output, 10) : parseInt(setting.buffers.output, 10)*-1).toString();
+			setting.buffers.output = "";
+		} else throw new CodeErrorException("There is no output element pinned.");
+		return {
+			Memory: memory,
+			Setting: setting
+		};
+	};
+
+	this.out = function(memory, information, setting) {
+		return {
+			Memory: memory,
+			Setting: setting
+		};
+	};
+}
+
+function DeviceCharOutput() {
+	this.in = function(memory, information, setting) {
+		if(setting.streams.outputElement != null)
+		{
+			setting.streams.outputElement.innerHTML = setting.streams.outputElement.innerHTML + setting.buffers.output;
+			setting.buffers.output = "";
+		} else throw new CodeErrorException("There is no output element pinned.");
+		return {
+			Memory: memory,
+			Setting: setting
+		};
+	};
+
+	this.out = function(memory, information, setting) {
+		return {
+			Memory: memory,
+			Setting: setting
+		};
+	};
+}
+
+function DeviceStringInput() {
+	this.in = function(memory, information, setting) {
+		return {
+			Memory: memory,
+			Setting: setting
+		};
+	};
+
+	this.out = function(memory, information, setting) {
+		if(setting.buffers.input.length > 0) {
+			text = setting.buffers.input;
+			console.log(memory.memory.length);
+			for(var index in text) {
+				data = new NumberMemory(text.charCodeAt(index));
+				address = information.parseDec()+parseInt(index, 10);
+				memory.setMemory(data, address);
+			}
+			console.log(memory.memory.length);
+			setting.buffers.input = "";
+		}
+		return {
+			Memory: memory,
+			Setting: setting
+		};
+	};
+}
+
+function DeviceDecInput() {
+	this.in = function(memory, information, setting) {
+		return {
+			Memory: memory,
+			Setting: setting
+		};
+	};
+
+	this.out = function(memory, information, setting) {
+		mem = new NumberMemory(parseDec(setting.buffers.input, 10));
+		memory.setMemory(mem, information.parseDec());
+		setting.buffers.input = "";
+		return memory;
+	};
+}
+
+function DeviceSignedDecInput() {
+	this.in = function(memory, information, setting) {
+		return {
+			Memory: memory,
+			Setting: setting
+		};
+	};
+
+	this.out = function(memory, information, setting) {
+		mem = new NumberMemory(parseInt(setting.buffers.input, 10)*(setting.buffers.input.charAt(0)=='-' ? -1 : 1));
+		memory.setMemory(mem, information.parseDec());
+		setting.buffers.input = "";
+		return {
+			Memory: memory,
+			Setting: setting
+		};
+	};
+}
+
+function RegisterAX() {
+	this.name = [
+		'ax',
+		'ah',
+		'al'
+	];
+	this.isShared = true;
+	this.memory = new SizedBitSet(16);
+
+	this.getMemory = function(name) {
+		if(name == 'ax') return this.memory;
+		else if(name == 'al') return this.memory.getRange(0, 8);
+		else if(name == 'ah') return this.memory.getRange(8, 16);
+	};
+
+	this.setMemory = function(name, memory) {
+		if(name == 'ax') this.memory = this.memory.clear().add(memory);
+		else if(name == 'al') this.memory = this.memory.pastePos(memory, 0);
+		else if(name == 'ah') this.memory = this.memory.pastePos(memory, 8);
+	};
+}
+
+function RegisterBX() {
+	this.name = [
+		'bx',
+		'bh',
+		'bl'
+	];
+	this.isShared = true;
+	this.memory = new SizedBitSet(16);
+
+	this.getMemory = function(name) {
+		if(name == 'bx') return this.memory;
+		else if(name == 'bl') return this.memory.getRange(0, 8);
+		else if(name == 'bh') return this.memory.getRange(8, 16);
+	};
+
+	this.setMemory = function(name, memory) {
+		if(name == 'bx') this.memory = this.memory.clear().add(memory);
+		else if(name == 'bl') this.memory = this.memory.pastePos(memory, 0);
+		else if(name == 'bh') this.memory = this.memory.pastePos(memory, 8);
+	};
+}
+
+function RegisterCX() {
+	this.name = [
+		'cx',
+		'ch',
+		'cl'
+	];
+	this.isShared = true;
+	this.memory = new SizedBitSet(16);
+
+	this.getMemory = function(name) {
+		if(name == 'cx') return this.memory;
+		else if(name == 'cl') return this.memory.getRange(0, 8);
+		else if(name == 'ch') return this.memory.getRange(8, 16);
+	};
+
+	this.setMemory = function(name, memory) {
+		if(name == 'cx') this.memory = this.memory.clear().add(memory);
+		else if(name == 'cl') this.memory = this.memory.pastePos(memory, 0);
+		else if(name == 'cl') this.memory = this.memory.pastePos(memory, 8);
+	};
+}
+
+function RegisterDX() {
+	this.name = [
+		'dx',
+		'dh',
+		'dl'
+	];
+	this.isShared = true;
+	this.memory = new SizedBitSet(16);
+
+	this.getMemory = function(name) {
+		if(name == 'dx') return this.memory;
+		else if(name == 'dl') return this.memory.getRange(0, 8);
+		else if(name == 'dh') return this.memory.getRange(8, 16);
+	};
+
+	this.setMemory = function(name, memory) {
+		if(name == 'dx') this.memory = this.memory.clear().add(memory);
+		else if(name == 'dl') this.memory = this.memory.pastePos(memory, 0);
+		else if(name == 'dl') this.memory = this.memory.pastePos(memory, 8);
+	};
+}
+
+function RegisterSP() {
+	this.name = [
+		'sp'
+	];
+	this.isShared = true;
+	this.memory = new SizedBitSet(16);
+
+	this.getMemory = function(name) {
+		if(name == 'sp') return this.memory;
+	};
+
+	this.setMemory = function(name, memory) {
+		if(name == 'sp') this.memory = this.memory.clear().add(memory);
+	};
+}
+
+function RegisterBP() {
+	this.name = [
+		'bp'
+	];
+	this.isShared = true;
+	this.memory = new SizedBitSet(16);
+
+	this.getMemory = function(name) {
+		if(name == 'bp') return this.memory;
+	};
+
+	this.setMemory = function(name, memory) {
+		if(name == 'bp') this.memory = this.memory.clear().add(memory);
+	};
+}
+
+function RegisterSI() {
+	this.name = [
+		'si'
+	];
+	this.isShared = true;
+	this.memory = new SizedBitSet(16);
+
+	this.getMemory = function(name) {
+		if(name == 'si') return this.memory;
+	};
+
+	this.setMemory = function(name, memory) {
+		if(name == 'si') this.memory = this.memory.clear().add(memory);
+	};
+}
+
+function RegisterDI() {
+	this.name = [
+		'di'
+	];
+	this.isShared = true;
+	this.memory = new SizedBitSet(16);
+
+	this.getMemory = function(name) {
+		if(name == 'di') return this.memory;
+	};
+
+	this.setMemory = function(name, memory) {
+		if(name == 'di') this.memory = this.memory.clear().add(memory);
+	};
+}
+
+function RegisterFLAGS() {
+	this.name = [
+		'flags'
+	];
+	this.isShared = false;
+	this.memory = new SizedBitSet(16);
+
+	this.getMemory = function(name) {
+		if(name == 'flags') return this.memory;
+	};
+
+	this.setMemory = function(name, memory) {
+		if(name == 'flags') this.memory = this.memory.clear().add(memory);
+	};
+}
+
+function RegisterIP() {
+	this.name = [
+		'ip'
+	];
+	this.isShared = false;
+	this.memory = new SizedBitSet(16);
+
+	this.getMemory = function(name) {
+		if(name == 'ip') return this.memory;
+	};
+
+	this.setMemory = function(name, memory) {
+		if(name == 'ip') this.memory = this.memory.clear().add(memory);
 	};
 }
 

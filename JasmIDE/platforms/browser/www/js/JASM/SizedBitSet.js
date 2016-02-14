@@ -131,20 +131,24 @@ function SizedBitSet(size) {
 	this.getRange = function(startPos, endPos) {
 		result = new SizedBitSet(Math.abs(endPos - startPos));
 		index = 0;
-		while(startPos++ != endPos) {
-			if(this.get(startPos) == 1) result = result.set(index++);
+		while(startPos != endPos) {
+			if(this.get(startPos++) == 1) result = result.set(index++);
 			else result = result.clr(index++);
 		}
 		return result;
 	};
 
 	this.putPos = function(Bitset, startPos) {
+		return this.clone().or(Bitset.shl(startPos));
+	};
+
+	this.pastePos = function(Bitset, startPos) {
 		result = this.clone();
-		endPos = Bitset.getSize()+startPos;
+		endPos = startPos + Bitset.getSize();
 		index = 0;
-		while(startPos++ != endPos) {
-			if(Bitset.get(index) == 1) result = result.set(startPos);
-			else result = result.clr(startPos);
+		while(startPos != endPos) {
+			if(Bitset.get(index++) == 1) result = result.set(startPos++);
+			else result = result.clr(startPos++);
 		}
 		return result;
 	};
