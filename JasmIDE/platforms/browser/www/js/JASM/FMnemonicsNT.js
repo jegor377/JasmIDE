@@ -42,6 +42,101 @@ function JMov(addressConverter)
 {
 	this.addressConverter = addressConverter;
 	this.doOperation = function(line, programEnvironment) {
+		commandMembers = line.substr(3, line.length-3).trim().split(',').map(function(e) {
+			return e.trim();
+		});
+
+		destinationMemory = commandMembers[0];
+		sourceMemory = commandMembers[1];
+		
+		if(checkIfMemberIsNumber(destinationMemory)) {
+			if(checkIfMemberIsLabel(sourceMemory, programEnvironment)) {
+				destMemoryAddress = setArchitectureAddressToRelativeAddress(parseInt(destinationMemory, 10));
+				sourceMemoryAddress = programEnvironment.programData.Labels.getLabel(sourceMemory).address;
+
+				sourceMemoryValue = ProgramEnvironment.programData.Memory.getMemory(sourceMemoryAddress).memory.parseDec();
+				programEnvironment.programData.Memory.setMemory(new NumberMemory(sourceMemoryValue), destMemoryAddress);
+			}
+			else if(checkIfMemberIsRegister(sourceMemory, programEnvironment)) {
+				destMemoryAddress = setArchitectureAddressToRelativeAddress(parseInt(destinationMemory, 10));
+				sourceMemoryValue = programEnvironment.registers.getRegisterByName(sourceMemory, false).parseDec();
+
+				programEnvironment.programData.Memory.setMemory(new NumberMemory(sourceMemoryValue), destMemoryAddress);
+			}
+			else if(checkIfMemberIsMemoryReference(sourceMemory)) {
+				destMemoryAddress = setArchitectureAddressToRelativeAddress(parseInt(destinationMemory, 10));
+				sourceMemoryValue = this.addressConverter.getValueFromAddress(sourceMemory, programEnvironment);
+
+				programEnvironment.programData.Memory.setMemory(new NumberMemory(sourceMemoryValue), destMemoryAddress);
+			}
+			else throw FMErrorException("Incorrect source memory ["+sourceMemory+"].");
+		}
+		else if(checkIfMemberIsLabel(destinationMemory, programEnvironment)) {
+			if(checkIfMemberIsNumber(sourceMemory)) {
+				destMemoryAddress = programEnvironment.programData.Labels.getLabel(destinationMemory).address;
+				sourceMemoryValue = parseInt(sourceMemory, 10);
+
+				programEnvironment.programData.Memory.setMemory(new NumberMemory(sourceMemoryValue), destMemoryAddress);
+			}
+			else if(checkIfMemberIsRegister(sourceMemory, programEnvironment)) {
+				destMemoryAddress = programEnvironment.programData.Labels.getLabel(destinationMemory).address;
+				sourceMemoryValue = programEnvironment.registers.getRegisterByName(sourceMemory, false).parseDec();
+
+				programEnvironment.programData.Memory.setMemory(new NumberMemory(sourceMemoryValue), destMemoryAddress);
+			}
+			else if(checkIfMemberIsMemoryReference(sourceMemory)) {
+				destMemoryAddress = programEnvironment.programData.Labels.getLabel(destinationMemory).address;
+				sourceMemoryValue = this.addressConverter.getValueFromAddress(sourceMemory, programEnvironment);
+
+				programEnvironment.programData.Memory.setMemory(new NumberMemory(sourceMemoryValue), destMemoryAddress);
+			}
+			else throw FMErrorException("Incorrect source memory ["+sourceMemory+"].");
+		}
+		else if(checkIfMemberIsRegister(destinationMemory, programEnvironment)) {
+			if(checkIfMemberIsLabel(sourceMemory, programEnvironment)) {
+				sourceMemoryValue = setAddressToMemoryArchitectureAddress(programEnvironment.programData.Labels.getLabel(sourceMemory).address);
+
+				programEnvironment.registers.setRegisterByName(destinationMemory, new SizedBitSet(16).setTo(sourceMemoryValue), false);
+			}
+			else if(checkIfMemberIsNumber(sourceMemory)) {
+				sourceMemoryValue = parseInt(sourceMemory, 10);
+
+				programEnvironment.registers.setRegisterByName(destinationMemory, new SizedBitSet(16).setTo(sourceMemoryValue), false);
+			}
+			else if(checkIfMemberIsMemoryReference(sourceMemory)) {
+				sourceMemoryValue = this.addressConverter.getValueFromAddress(sourceMemory, programEnvironment);
+
+				programEnvironment.registers.setRegisterByName(destinationMemory, new SizedBitSet(16).setTo(sourceMemoryValue), false);
+			}
+			else throw FMErrorException("Incorrect source memory ["+sourceMemory+"].");
+		}
+		else if(checkIfMemberIsMemoryReference(destinationMemory)) {
+			if(checkIfMemberIsLabel(sourceMemory, programEnvironment)) {
+				destMemoryAddress = this.addressConverter.getValueFromAddress(destinationMemory, programEnvironment);
+				sourceMemoryAddress = programEnvironment.programData.Labels.getLabel(sourceMemory).address;
+
+				sourceMemoryValue = programEnvironment.programData.Memory.getMemory(sourceMemoryAddress);
+
+				programEnvironment.programData.Memory.setMemory(new NumberMemory(sourceMemoryValue), destMemoryAddress);
+			}
+			else if(checkIfMemberIsRegister(sourceMemory, programEnvironment)) {
+				destMemoryAddress = this.addressConverter.getValueFromAddress(destinationMemory, programEnvironment);
+				sourceMemoryValue = programEnvironment.registers.getRegisterByName(sourceMemory, false).parseDec();
+
+				programEnvironment.programData.Memory.setMemory(new NumberMemory(sourceMemoryValue), destMemoryAddress);
+			}
+			else if(checkIfMemberIsNumber(sourceMemory)) {
+				destMemoryAddress = this.addressConverter.getValueFromAddress(destinationMemory, programEnvironment);
+				sourceMemoryValue = parseInt(sourceMemory, 10);
+				console.log(destMemoryAddress);
+				console.log(sourceMemoryValue);
+
+				programEnvironment.programData.Memory.setMemory(new NumberMemory(sourceMemoryValue), destMemoryAddress);
+			}
+			else throw FMErrorException("Incorrect source memory ["+sourceMemory+"].");
+		}
+		else throw new FMErrorException("Incorrect destination memory ["+destinationMemory+"].");
+
 		return programEnvironment;
 	};
 }
@@ -188,11 +283,15 @@ function RegAndDisposeAddressConverter()
 function OnlyRegAddressConverter()
 {
 	this.getValueFromAddress = function(addressMembers, programEnvironment) {
+		console.log("REG ADR");
 		addressRegister = addressMembers[0];
+		console.log(addressRegister);
 		if(checkIfMemberIsLabel(addressRegister, programEnvironment)) throw new FMErrorException("Register cannot be a label. It must be the name of a register.");
 		if(checkIfMemberIsNumber(addressRegister)) throw new FMErrorException("Register cannot be a constant value. It must be the name of a register.");
 		registerValue = setRegisterAddressToMemoryArchitectureAddress(addressRegister, programEnvironment);
+		console.log(registerValue);
 		relativeAddress = programEnvironment.programData.Memory.getMemory(registerValue);
+		console.log(relativeAddress);
 		if(relativeAddress.type == "com") throw new FMErrorException("The memory is not a command. Cannot to perform this data.");
 		return relativeAddress.memory.parseDec();
 	};

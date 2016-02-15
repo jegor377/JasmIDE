@@ -95,7 +95,8 @@ function JASMRuntimeEnvironment() {
 				console.log(comAddress);
 			}
 			catch(e) {
-				throw new CodeErrorException(e.message, comAddress);
+				throw e;
+				//throw new CodeErrorException(e.message, comAddress);
 			}
 		}
 	};
@@ -133,7 +134,8 @@ function JASMRuntimeEnvironment() {
 		}
 		catch(e)
 		{
-			throw new CodeErrorException(e.message, null);
+			throw e;
+			//throw new CodeErrorException(e.message, null);
 		}
 	};
 }
