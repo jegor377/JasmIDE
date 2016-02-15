@@ -9,6 +9,7 @@ function FMnemonics() {
 	this.mnemonics['in'] = new JIn(this.addressConverter);
 	this.mnemonics['out'] = new JOut(this.addressConverter);
 	this.mnemonics['push'] = new JPush(this.addressConverter); // work
+	this.mnemonics['pop'] = new JPop(this.addressConverter);
 
 	this.getMnemonicByLine = function(line) {
 		mnemonic = line.toLowerCase().split(' ')[0];
@@ -26,6 +27,116 @@ function JAdd(addressConverter)
 {
 	this.addressConverter = addressConverter;
 	this.doOperation = function(line, programEnvironment) {
+		commandMembers = line.substr(3, line.length-3).replace(/ /g, '').trim().split(',').map(function(e) {
+			return e.trim();
+		});
+
+		destinationMemory = commandMembers[0];
+		sourceMemory = commandMembers[1];
+		
+		if(checkIfMemberIsNumber(destinationMemory)) {
+			if(checkIfMemberIsLabel(sourceMemory, programEnvironment)) {
+				destMemoryAddress = setArchitectureAddressToRelativeAddress(parseInt(destinationMemory, 10));
+				sourceMemoryAddress = programEnvironment.programData.Labels.getLabel(sourceMemory).address;
+
+				destinationValue = ProgramEnvironment.programData.Memory.getMemory(destMemoryAddress).memory.parseDec();
+				sourceMemoryValue = ProgramEnvironment.programData.Memory.getMemory(sourceMemoryAddress).memory.parseDec();
+				programEnvironment.programData.Memory.setMemory(new NumberMemory(destinationValue + sourceMemoryValue), destMemoryAddress);
+			}
+			else if(checkIfMemberIsRegister(sourceMemory, programEnvironment)) {
+				destMemoryAddress = setArchitectureAddressToRelativeAddress(parseInt(destinationMemory, 10));
+
+				destinationValue = ProgramEnvironment.programData.Memory.getMemory(destMemoryAddress).memory.parseDec();
+				sourceMemoryValue = programEnvironment.registers.getRegisterByName(sourceMemory, false).parseDec();
+				programEnvironment.programData.Memory.setMemory(new NumberMemory(destinationValue + sourceMemoryValue), destMemoryAddress);
+			}
+			else if(checkIfMemberIsMemoryReference(sourceMemory)) {
+				destMemoryAddress = setArchitectureAddressToRelativeAddress(parseInt(destinationMemory, 10));
+
+				destinationValue = ProgramEnvironment.programData.Memory.getMemory(destMemoryAddress).memory.parseDec();
+				sourceMemoryValue = this.addressConverter.getValueFromAddress(sourceMemory, programEnvironment);
+				programEnvironment.programData.Memory.setMemory(new NumberMemory(destinationValue + sourceMemoryValue), destMemoryAddress);
+			}
+			else throw FMErrorException("Incorrect source memory ["+sourceMemory+"].");
+		}
+		else if(checkIfMemberIsLabel(destinationMemory, programEnvironment)) {
+			if(checkIfMemberIsNumber(sourceMemory)) {
+				destMemoryAddress = programEnvironment.programData.Labels.getLabel(destinationMemory).address;
+				
+				destinationValue = rogramEnvironment.programData.Memory.getMemory(destMemoryAddress).memory.parseDec();
+				sourceMemoryValue = parseInt(sourceMemory, 10);
+				programEnvironment.programData.Memory.setMemory(new NumberMemory(destinationValue + sourceMemoryValue), destMemoryAddress);
+			}
+			else if(checkIfMemberIsRegister(sourceMemory, programEnvironment)) {
+				destMemoryAddress = programEnvironment.programData.Labels.getLabel(destinationMemory).address;
+
+				destinationValue = rogramEnvironment.programData.Memory.getMemory(destMemoryAddress).memory.parseDec();
+				sourceMemoryValue = programEnvironment.registers.getRegisterByName(sourceMemory, false).parseDec();
+				programEnvironment.programData.Memory.setMemory(new NumberMemory(destinationValue + sourceMemoryValue), destMemoryAddress);
+			}
+			else if(checkIfMemberIsMemoryReference(sourceMemory)) {
+				destMemoryAddress = programEnvironment.programData.Labels.getLabel(destinationMemory).address;
+
+				destinationValue = rogramEnvironment.programData.Memory.getMemory(destMemoryAddress).memory.parseDec();
+				sourceMemoryValue = this.addressConverter.getValueFromAddress(sourceMemory, programEnvironment);
+				programEnvironment.programData.Memory.setMemory(new NumberMemory(destinationValue + sourceMemoryValue), destMemoryAddress);
+			}
+			else throw FMErrorException("Incorrect source memory ["+sourceMemory+"].");
+		}
+		else if(checkIfMemberIsRegister(destinationMemory, programEnvironment)) {
+			if(checkIfMemberIsLabel(sourceMemory, programEnvironment)) {
+				sourceMemoryValue = setAddressToMemoryArchitectureAddress(programEnvironment.programData.Labels.getLabel(sourceMemory).address);
+				destinationValue = programEnvironment.registers.getRegisterByName(destinationMemory, false).parseDec();
+
+				programEnvironment.registers.setRegisterByName(destinationMemory, new SizedBitSet(16).setTo(destinationValue + sourceMemoryValue), false);
+			}
+			else if(checkIfMemberIsNumber(sourceMemory)) {
+				sourceMemoryValue = parseInt(sourceMemory, 10);
+				destinationValue = programEnvironment.registers.getRegisterByName(destinationMemory, false).parseDec();
+
+				programEnvironment.registers.setRegisterByName(destinationMemory, new SizedBitSet(16).setTo(destinationValue + sourceMemoryValue), false);
+			}
+			else if(checkIfMemberIsMemoryReference(sourceMemory)) {
+				sourceMemoryValue = this.addressConverter.getValueFromAddress(sourceMemory, programEnvironment);
+				destinationValue = programEnvironment.registers.getRegisterByName(destinationMemory, false).parseDec();
+
+				programEnvironment.registers.setRegisterByName(destinationMemory, new SizedBitSet(16).setTo(destinationValue + sourceMemoryValue), false);
+			}
+			else if(checkIfMemberIsRegister(sourceMemory, programEnvironment)) {
+				sourceMemoryValue = programEnvironment.registers.getRegisterByName(sourceMemory, false).parseDec();
+				destinationValue = programEnvironment.registers.getRegisterByName(destinationMemory, false).parseDec();
+
+				programEnvironment.registers.setRegisterByName(destinationMemory, new SizedBitSet(16).setTo(destinationValue + sourceMemoryValue), false);
+			}
+			else throw FMErrorException("Incorrect source memory ["+sourceMemory+"].");
+		}
+		else if(checkIfMemberIsMemoryReference(destinationMemory)) {
+			if(checkIfMemberIsLabel(sourceMemory, programEnvironment)) {
+				destMemoryAddress = this.addressConverter.getValueFromAddress(destinationMemory, programEnvironment);
+				sourceMemoryAddress = programEnvironment.programData.Labels.getLabel(sourceMemory).address;
+				destinationValue = programEnvironment.programData.Memory.getMemory(destMemoryAddress);
+
+				sourceMemoryValue = programEnvironment.programData.Memory.getMemory(sourceMemoryAddress);
+
+				programEnvironment.programData.Memory.setMemory(new NumberMemory(destinationValue + sourceMemoryValue), destMemoryAddress);
+			}
+			else if(checkIfMemberIsRegister(sourceMemory, programEnvironment)) {
+				destMemoryAddress = this.addressConverter.getValueFromAddress(destinationMemory, programEnvironment);
+				sourceMemoryValue = programEnvironment.registers.getRegisterByName(sourceMemory, false).parseDec();
+				destinationValue = programEnvironment.programData.Memory.getMemory(destMemoryAddress);
+
+				programEnvironment.programData.Memory.setMemory(new NumberMemory(destinationValue + sourceMemoryValue), destMemoryAddress);
+			}
+			else if(checkIfMemberIsNumber(sourceMemory)) {
+				destMemoryAddress = this.addressConverter.getValueFromAddress(destinationMemory, programEnvironment);
+				sourceMemoryValue = parseInt(sourceMemory, 10);
+				destinationValue = programEnvironment.programData.Memory.getMemory(destMemoryAddress);
+
+				programEnvironment.programData.Memory.setMemory(new NumberMemory(destinationValue + sourceMemoryValue), destMemoryAddress);
+			}
+			else throw FMErrorException("Incorrect source memory ["+sourceMemory+"].");
+		}
+		else throw new FMErrorException("Incorrect destination memory ["+destinationMemory+"].");
 		return programEnvironment;
 	};
 }
@@ -34,6 +145,116 @@ function JSub(addressConverter)
 {
 	this.addressConverter = addressConverter;
 	this.doOperation = function(line, programEnvironment) {
+		commandMembers = line.substr(3, line.length-3).replace(/ /g, '').trim().split(',').map(function(e) {
+			return e.trim();
+		});
+
+		destinationMemory = commandMembers[0];
+		sourceMemory = commandMembers[1];
+		
+		if(checkIfMemberIsNumber(destinationMemory)) {
+			if(checkIfMemberIsLabel(sourceMemory, programEnvironment)) {
+				destMemoryAddress = setArchitectureAddressToRelativeAddress(parseInt(destinationMemory, 10));
+				sourceMemoryAddress = programEnvironment.programData.Labels.getLabel(sourceMemory).address;
+
+				destinationValue = ProgramEnvironment.programData.Memory.getMemory(destMemoryAddress).memory.parseDec();
+				sourceMemoryValue = ProgramEnvironment.programData.Memory.getMemory(sourceMemoryAddress).memory.parseDec();
+				programEnvironment.programData.Memory.setMemory(new NumberMemory(destinationValue - sourceMemoryValue), destMemoryAddress);
+			}
+			else if(checkIfMemberIsRegister(sourceMemory, programEnvironment)) {
+				destMemoryAddress = setArchitectureAddressToRelativeAddress(parseInt(destinationMemory, 10));
+
+				destinationValue = ProgramEnvironment.programData.Memory.getMemory(destMemoryAddress).memory.parseDec();
+				sourceMemoryValue = programEnvironment.registers.getRegisterByName(sourceMemory, false).parseDec();
+				programEnvironment.programData.Memory.setMemory(new NumberMemory(destinationValue - sourceMemoryValue), destMemoryAddress);
+			}
+			else if(checkIfMemberIsMemoryReference(sourceMemory)) {
+				destMemoryAddress = setArchitectureAddressToRelativeAddress(parseInt(destinationMemory, 10));
+
+				destinationValue = ProgramEnvironment.programData.Memory.getMemory(destMemoryAddress).memory.parseDec();
+				sourceMemoryValue = this.addressConverter.getValueFromAddress(sourceMemory, programEnvironment);
+				programEnvironment.programData.Memory.setMemory(new NumberMemory(destinationValue - sourceMemoryValue), destMemoryAddress);
+			}
+			else throw FMErrorException("Incorrect source memory ["+sourceMemory+"].");
+		}
+		else if(checkIfMemberIsLabel(destinationMemory, programEnvironment)) {
+			if(checkIfMemberIsNumber(sourceMemory)) {
+				destMemoryAddress = programEnvironment.programData.Labels.getLabel(destinationMemory).address;
+				
+				destinationValue = rogramEnvironment.programData.Memory.getMemory(destMemoryAddress).memory.parseDec();
+				sourceMemoryValue = parseInt(sourceMemory, 10);
+				programEnvironment.programData.Memory.setMemory(new NumberMemory(destinationValue - sourceMemoryValue), destMemoryAddress);
+			}
+			else if(checkIfMemberIsRegister(sourceMemory, programEnvironment)) {
+				destMemoryAddress = programEnvironment.programData.Labels.getLabel(destinationMemory).address;
+
+				destinationValue = rogramEnvironment.programData.Memory.getMemory(destMemoryAddress).memory.parseDec();
+				sourceMemoryValue = programEnvironment.registers.getRegisterByName(sourceMemory, false).parseDec();
+				programEnvironment.programData.Memory.setMemory(new NumberMemory(destinationValue - sourceMemoryValue), destMemoryAddress);
+			}
+			else if(checkIfMemberIsMemoryReference(sourceMemory)) {
+				destMemoryAddress = programEnvironment.programData.Labels.getLabel(destinationMemory).address;
+
+				destinationValue = rogramEnvironment.programData.Memory.getMemory(destMemoryAddress).memory.parseDec();
+				sourceMemoryValue = this.addressConverter.getValueFromAddress(sourceMemory, programEnvironment);
+				programEnvironment.programData.Memory.setMemory(new NumberMemory(destinationValue - sourceMemoryValue), destMemoryAddress);
+			}
+			else throw FMErrorException("Incorrect source memory ["+sourceMemory+"].");
+		}
+		else if(checkIfMemberIsRegister(destinationMemory, programEnvironment)) {
+			if(checkIfMemberIsLabel(sourceMemory, programEnvironment)) {
+				sourceMemoryValue = setAddressToMemoryArchitectureAddress(programEnvironment.programData.Labels.getLabel(sourceMemory).address);
+				destinationValue = programEnvironment.registers.getRegisterByName(destinationMemory, false).parseDec();
+
+				programEnvironment.registers.setRegisterByName(destinationMemory, new SizedBitSet(16).setTo(destinationValue - sourceMemoryValue), false);
+			}
+			else if(checkIfMemberIsNumber(sourceMemory)) {
+				sourceMemoryValue = parseInt(sourceMemory, 10);
+				destinationValue = programEnvironment.registers.getRegisterByName(destinationMemory, false).parseDec();
+
+				programEnvironment.registers.setRegisterByName(destinationMemory, new SizedBitSet(16).setTo(destinationValue - sourceMemoryValue), false);
+			}
+			else if(checkIfMemberIsMemoryReference(sourceMemory)) {
+				sourceMemoryValue = this.addressConverter.getValueFromAddress(sourceMemory, programEnvironment);
+				destinationValue = programEnvironment.registers.getRegisterByName(destinationMemory, false).parseDec();
+
+				programEnvironment.registers.setRegisterByName(destinationMemory, new SizedBitSet(16).setTo(destinationValue - sourceMemoryValue), false);
+			}
+			else if(checkIfMemberIsRegister(sourceMemory, programEnvironment)) {
+				sourceMemoryValue = programEnvironment.registers.getRegisterByName(sourceMemory, false).parseDec();
+				destinationValue = programEnvironment.registers.getRegisterByName(destinationMemory, false).parseDec();
+
+				programEnvironment.registers.setRegisterByName(destinationMemory, new SizedBitSet(16).setTo(destinationValue - sourceMemoryValue), false);
+			}
+			else throw FMErrorException("Incorrect source memory ["+sourceMemory+"].");
+		}
+		else if(checkIfMemberIsMemoryReference(destinationMemory)) {
+			if(checkIfMemberIsLabel(sourceMemory, programEnvironment)) {
+				destMemoryAddress = this.addressConverter.getValueFromAddress(destinationMemory, programEnvironment);
+				sourceMemoryAddress = programEnvironment.programData.Labels.getLabel(sourceMemory).address;
+				destinationValue = programEnvironment.programData.Memory.getMemory(destMemoryAddress);
+
+				sourceMemoryValue = programEnvironment.programData.Memory.getMemory(sourceMemoryAddress);
+
+				programEnvironment.programData.Memory.setMemory(new NumberMemory(destinationValue - sourceMemoryValue), destMemoryAddress);
+			}
+			else if(checkIfMemberIsRegister(sourceMemory, programEnvironment)) {
+				destMemoryAddress = this.addressConverter.getValueFromAddress(destinationMemory, programEnvironment);
+				sourceMemoryValue = programEnvironment.registers.getRegisterByName(sourceMemory, false).parseDec();
+				destinationValue = programEnvironment.programData.Memory.getMemory(destMemoryAddress);
+
+				programEnvironment.programData.Memory.setMemory(new NumberMemory(destinationValue - sourceMemoryValue), destMemoryAddress);
+			}
+			else if(checkIfMemberIsNumber(sourceMemory)) {
+				destMemoryAddress = this.addressConverter.getValueFromAddress(destinationMemory, programEnvironment);
+				sourceMemoryValue = parseInt(sourceMemory, 10);
+				destinationValue = programEnvironment.programData.Memory.getMemory(destMemoryAddress);
+
+				programEnvironment.programData.Memory.setMemory(new NumberMemory(destinationValue - sourceMemoryValue), destMemoryAddress);
+			}
+			else throw FMErrorException("Incorrect source memory ["+sourceMemory+"].");
+		}
+		else throw new FMErrorException("Incorrect destination memory ["+destinationMemory+"].");
 		return programEnvironment;
 	};
 }
@@ -42,7 +263,7 @@ function JMov(addressConverter)
 {
 	this.addressConverter = addressConverter;
 	this.doOperation = function(line, programEnvironment) {
-		commandMembers = line.substr(3, line.length-3).trim().split(',').map(function(e) {
+		commandMembers = line.substr(3, line.length-3).replace(/ /g, '').trim().split(',').map(function(e) {
 			return e.trim();
 		});
 
@@ -104,7 +325,7 @@ function JMov(addressConverter)
 				programEnvironment.registers.setRegisterByName(destinationMemory, new SizedBitSet(16).setTo(sourceMemoryValue), false);
 			}
 			else if(checkIfMemberIsMemoryReference(sourceMemory)) {
-				sourceMemoryValue = this.addressConverter.registers.getValueFromAddress(sourceMemory, programEnvironment);
+				sourceMemoryValue = this.addressConverter.getValueFromAddress(sourceMemory, programEnvironment);
 
 				programEnvironment.registers.setRegisterByName(destinationMemory, new SizedBitSet(16).setTo(sourceMemoryValue), false);
 			}
@@ -133,8 +354,6 @@ function JMov(addressConverter)
 			else if(checkIfMemberIsNumber(sourceMemory)) {
 				destMemoryAddress = this.addressConverter.getValueFromAddress(destinationMemory, programEnvironment);
 				sourceMemoryValue = parseInt(sourceMemory, 10);
-				console.log(destMemoryAddress);
-				console.log(sourceMemoryValue);
 
 				programEnvironment.programData.Memory.setMemory(new NumberMemory(sourceMemoryValue), destMemoryAddress);
 			}
@@ -229,6 +448,38 @@ function JPush(addressConverter)
 	};
 }
 
+function JPop(addressConverter)
+{
+	this.addressConverter = addressConverter;
+	this.doOperation = function(line, programEnvironment) {
+		commandMember = line.substr(3, line.length-3).trim();
+		if(checkIfMemberIsNumber(commandMember)) {
+			popAddress = setArchitectureAddressToRelativeAddress(parseInt(commandMember, 10));
+			popData = PopElementFromStack(programEnvironment);
+			programEnvironment = popData.ProgramEnvironment;
+			programEnvironment.programData.Memory.setMemory(popData.element, popAddress);
+		}
+		else if(checkIfMemberIsLabel(commandMember, programEnvironment)) {
+			popAddress = programEnvironment.programData.Labels.getLabel(commandMember).address;
+			popData = PopElementFromStack(programEnvironment);
+			programEnvironment = popData.ProgramEnvironment;
+			programEnvironment.programData.Memory.setMemory(popData.element, popAddress);
+		}
+		else if(checkIfMemberIsMemoryReference(commandMember)) {
+			popAddress = this.addressConverter.getValueFromAddress(commandMember, programEnvironment);
+			popData = PopElementFromStack(programEnvironment);
+			programEnvironment = popData.ProgramEnvironment;
+			programEnvironment.programData.Memory.setMemory(popData.element, popAddress);
+		}
+		else if(checkIfMemberIsRegister(commandMember, programEnvironment)) {
+			popData = PopElementFromStack(programEnvironment);
+			programEnvironment = popData.ProgramEnvironment;
+			programEnvironment.registers.setRegisterByName(commandMember, popData.element.memory, false);
+		}
+		else throw new FMErrorException("Incorrect expression ["+commandMember+"].");
+	};
+}
+
 function PushElementOnStack(number, programEnvironment) {
 	actualSP = programEnvironment.registers.getRegisterByName('sp', false);
 	if(actualSP.parseDec() > 0)
@@ -272,14 +523,15 @@ function AddressConverter()
 
 function RegAndDisposeAddressConverter()
 {
-	this.getValueFromAddress = function(addressMembers, programEnvironment) {
-		addressRegister = addressMembers[0];
-		addressDispose = addressMembers[1];
+	this.getValueFromAddress = function(addressMembers, programEnvironment, toAdd) {
+		addressRegister = addressMembers[0].trim();
+		addressDispose = addressMembers[1].trim();
 		if(checkIfMemberIsLabel(addressDispose, programEnvironment)) throw new FMErrorException("Dispose cannot be a label. It must be a constant value.");
 		if(checkIfMemberIsLabel(addressDispose, programEnvironment)) throw new FMErrorException("Register cannot be a label. It must be the name of a register.");
 		if(checkIfMemberIsNumber(addressRegister)) throw new FMErrorException("Register cannot be a constant value. It must be the name of a register.");
-		registerValue = setRegisterAddressToMemoryArchitectureAddress(addressRegister, programEnvironment);
-		relativeAddress = programEnvironment.programData.Memory.getMemory(registerValue+parseInt(addressDispose, 10));
+		registerValue = programEnvironment.registers.getRegisterByName(addressRegister, false).parseDec();
+		addressDisposeValue = setArchitectureAddressToRelativeAddress(registerValue+parseInt(addressDispose, 10));
+		relativeAddress = programEnvironment.programData.Memory.getMemory(addressDisposeValue);
 		if(relativeAddress.type == "com") throw new FMErrorException("The memory is not a command. Cannot to perform this data.");
 		return relativeAddress.memory.parseDec();
 	};
@@ -287,11 +539,11 @@ function RegAndDisposeAddressConverter()
 
 function OnlyRegAddressConverter()
 {
-	this.getValueFromAddress = function(addressMembers, programEnvironment) {
-		addressRegister = addressMembers[0];
+	this.getValueFromAddress = function(addressMembers, programEnvironment, toAdd) {
+		addressRegister = addressMembers[0].trim();
 		if(checkIfMemberIsLabel(addressRegister, programEnvironment)) throw new FMErrorException("Register cannot be a label. It must be the name of a register.");
 		if(checkIfMemberIsNumber(addressRegister)) throw new FMErrorException("Register cannot be a constant value. It must be the name of a register.");
-		registerValue = setRegisterAddressToMemoryArchitectureAddress(addressRegister, programEnvironment);
+		registerValue = setArchitectureAddressToRelativeAddress(programEnvironment.registers.getRegisterByName(addressRegister, false).parseDec());
 		relativeAddress = programEnvironment.programData.Memory.getMemory(registerValue);
 		if(relativeAddress.type == "com") throw new FMErrorException("The memory is not a command. Cannot to perform this data.");
 		return relativeAddress.memory.parseDec();
@@ -307,12 +559,6 @@ function setArchitectureAddressToRelativeAddress(address) {
 	maxMemorySize = 65535;
 	return maxMemorySize - address;
 }
-
-function setRegisterAddressToMemoryArchitectureAddress(addressRegister, programEnvironment) {
-	registerValue = programEnvironment.registers.getRegisterByName(addressRegister, false);
-	maxMemorySize = 65535;
-	return Math.abs(registerValue.parseDec()-maxMemorySize);
-};
 
 function checkIfMemberIsMemoryReference(member) {
 	return member.charAt(0) == '[' && member.charAt(member.length-1) == ']';
