@@ -446,7 +446,7 @@ function RegisterAX() {
 
 	this.setMemory = function(name, memory) {
 		if(name == 'ax') this.memory = this.memory.clear().add(memory);
-		else if(name == 'al') this.memory = this.memory.pastePos(memory, 0);
+		else if(name == 'al') this.memory = this.memory.pastePos(memory.getRange(0, 8), 0);
 		else if(name == 'ah') this.memory = this.memory.pastePos(memory, 8);
 	};
 }
@@ -468,7 +468,7 @@ function RegisterBX() {
 
 	this.setMemory = function(name, memory) {
 		if(name == 'bx') this.memory = this.memory.clear().add(memory);
-		else if(name == 'bl') this.memory = this.memory.pastePos(memory, 0);
+		else if(name == 'bl') this.memory = this.memory.pastePos(memory.getRange(0, 8), 0);
 		else if(name == 'bh') this.memory = this.memory.pastePos(memory, 8);
 	};
 }
@@ -490,7 +490,7 @@ function RegisterCX() {
 
 	this.setMemory = function(name, memory) {
 		if(name == 'cx') this.memory = this.memory.clear().add(memory);
-		else if(name == 'cl') this.memory = this.memory.pastePos(memory, 0);
+		else if(name == 'cl') this.memory = this.memory.pastePos(memory.getRange(0, 8), 0);
 		else if(name == 'cl') this.memory = this.memory.pastePos(memory, 8);
 	};
 }
@@ -512,7 +512,7 @@ function RegisterDX() {
 
 	this.setMemory = function(name, memory) {
 		if(name == 'dx') this.memory = this.memory.clear().add(memory);
-		else if(name == 'dl') this.memory = this.memory.pastePos(memory, 0);
+		else if(name == 'dl') this.memory = this.memory.pastePos(memory.getRange(0, 8), 0);
 		else if(name == 'dl') this.memory = this.memory.pastePos(memory, 8);
 	};
 }

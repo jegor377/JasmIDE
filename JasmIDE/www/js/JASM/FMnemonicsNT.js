@@ -3,12 +3,12 @@ function FMnemonics() {
 	this.mnemonics = [];
 	this.mnemonics['add'] = new JAdd(this.addressConverter);
 	this.mnemonics['sub'] = new JSub(this.addressConverter);
-	this.mnemonics['mov'] = new JMov(this.addressConverter);
-	this.mnemonics['call'] = new JCall(this.addressConverter);
-	this.mnemonics['ret'] = new JRet();
+	this.mnemonics['mov'] = new JMov(this.addressConverter); // work
+	this.mnemonics['call'] = new JCall(this.addressConverter); // work
+	this.mnemonics['ret'] = new JRet(); // work
 	this.mnemonics['in'] = new JIn(this.addressConverter);
 	this.mnemonics['out'] = new JOut(this.addressConverter);
-	this.mnemonics['push'] = new JPush(this.addressConverter);
+	this.mnemonics['push'] = new JPush(this.addressConverter); // work
 
 	this.getMnemonicByLine = function(line) {
 		mnemonic = line.toLowerCase().split(' ')[0];
@@ -104,7 +104,12 @@ function JMov(addressConverter)
 				programEnvironment.registers.setRegisterByName(destinationMemory, new SizedBitSet(16).setTo(sourceMemoryValue), false);
 			}
 			else if(checkIfMemberIsMemoryReference(sourceMemory)) {
-				sourceMemoryValue = this.addressConverter.getValueFromAddress(sourceMemory, programEnvironment);
+				sourceMemoryValue = this.addressConverter.registers.getValueFromAddress(sourceMemory, programEnvironment);
+
+				programEnvironment.registers.setRegisterByName(destinationMemory, new SizedBitSet(16).setTo(sourceMemoryValue), false);
+			}
+			else if(checkIfMemberIsRegister(sourceMemory, programEnvironment)) {
+				sourceMemoryValue = programEnvironment.registers.getRegisterByName(sourceMemory, false).parseDec();
 
 				programEnvironment.registers.setRegisterByName(destinationMemory, new SizedBitSet(16).setTo(sourceMemoryValue), false);
 			}
